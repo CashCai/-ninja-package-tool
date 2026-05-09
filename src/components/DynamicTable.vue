@@ -1,0 +1,260 @@
+<template>
+  <div ref="tableRef" class="dynamic-table overflow-x-auto border border-gray-200 rounded-lg">
+    <table class="min-w-full border-collapse text-sm" style="table-layout: fixed">
+      <colgroup>
+        <col style="width: 60px; min-width: 60px">
+        <col v-for="col in columns" :key="col.key" :style="{ width: (colWidths[col.key] || 120) + 'px' }">
+        <col v-if="editable" style="width: 56px; min-width: 56px">
+      </colgroup>
+      <thead>
+        <tr class="bg-gray-50">
+          <th class="sticky left-0 bg-gray-50 z-10 border-r border-b px-3 py-2 text-left font-medium">
+            序号
+          </th>
+          <th
+            v-for="col in columns"
+            :key="col.key"
+            class="relative border-r border-b px-3 py-2 text-left font-medium cursor-pointer select-none"
+            :class="{ 'bg-gray-100': col.type === 'derived' }"
+            @click="toggleSort(col.key)"
+          >
+            <div class="flex items-center gap-1 pr-3 overflow-hidden">
+              <span class="truncate">{{ col.label }}</span>
+              <span
+                v-if="col.type === 'derived' && columnHints?.[col.key]"
+                class="text-xs text-blue-500 cursor-help flex-shrink-0"
+                :title="columnHints[col.key]"
+              >ⓘ</span>
+              <span v-if="sortColumn === col.key" class="text-xs flex-shrink-0">
+                {{ sortDirection === 'asc' ? '▲' : '▼' }}
+              </span>
+            </div>
+            <div
+              class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 z-20"
+              @mousedown.stop="startResize($event, col.key)"
+            />
+          </th>
+          <th v-if="editable" class="border-b px-2 py-2 w-14">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, idx) in sortedData" :key="idx" class="hover:bg-gray-50" @paste="(e: ClipboardEvent) => onPaste(e, idx)">
+          <td class="sticky left-0 bg-white border-r border-b px-3 py-1.5 text-gray-400 text-xs">
+            {{ idx + 1 }}
+          </td>
+          <td
+            v-for="col in columns"
+            :key="col.key"
+            class="border-r border-b px-1 py-0 transition-colors"
+            :class="{
+              'bg-gray-50': col.type === 'derived',
+              'bg-blue-50 ring-1 ring-inset ring-blue-300': isHovered(idx, col.key) && col.isEditable,
+            }"
+            @mouseenter="onCellEnter(idx, col.key)"
+            @mouseleave="onCellLeave"
+            @click="onCellClick(idx, col)"
+          >
+            <div v-if="editingCell?.row === idx && editingCell?.col === col.key">
+              <input
+                v-model="editValue"
+                class="w-full px-2 py-1 border border-blue-400 rounded outline-none text-sm"
+                autofocus
+                @blur="commitEdit"
+                @keydown.enter="commitEdit"
+                @keydown.escape="cancelEdit"
+                @click.stop
+              />
+            </div>
+            <div
+              v-else
+              class="px-2 py-1.5 min-h-[32px] overflow-hidden text-ellipsis whitespace-nowrap"
+              :class="{
+                'cursor-text': col.isEditable,
+                'cursor-default': !col.isEditable || col.type === 'derived',
+                'text-gray-500 italic': row[col.key] == null || row[col.key] === '',
+              }"
+            >
+              {{ row[col.key] ?? '—' }}
+            </div>
+          </td>
+          <td v-if="editable" class="border-b px-2 py-1">
+            <button class="text-red-400 hover:text-red-600 text-xs" @click="emit('deleteRow', idx)">删除</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div v-if="editable" class="p-3 border-t border-gray-200">
+      <button class="text-sm text-blue-500 hover:text-blue-700" @click="emit('addRow')">
+        + 添加行
+      </button>
+      <span class="text-xs text-gray-400 ml-3">{{ data.length }} 行</span>
+    </div>
+    <div v-if="data.length === 0" class="p-8 text-center text-gray-400">暂无数据，请添加行或导入数据</div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, onBeforeUnmount } from 'vue'
+import type { ColumnConfig } from '@/types'
+
+const props = withDefaults(defineProps<{
+  columns: ColumnConfig[]
+  data: Record<string, any>[]
+  editable?: boolean
+  columnHints?: Record<string, string>
+}>(), {
+  editable: true,
+})
+
+const emit = defineEmits<{
+  updateCell: [rowIndex: number, key: string, value: any]
+  deleteRow: [rowIndex: number]
+  addRow: []
+  pasteRows: [startRow: number, rows: Record<string, string>[]]
+}>()
+
+const editingCell = ref<{ row: number; col: string } | null>(null)
+const hoveredCell = ref<{ row: number; col: string } | null>(null)
+const editValue = ref('')
+const sortColumn = ref<string | null>(null)
+const sortDirection = ref<'asc' | 'desc'>('asc')
+const tableRef = ref<HTMLElement | null>(null)
+
+// Column resize state
+const colWidths = ref<Record<string, number>>({})
+const resizing = ref<{ key: string; startX: number; startWidth: number } | null>(null)
+
+const sortedData = computed(() => {
+  if (!sortColumn.value) return props.data
+  const col = sortColumn.value
+  const dir = sortDirection.value === 'asc' ? 1 : -1
+  return [...props.data].sort((a, b) => {
+    const va = a[col]
+    const vb = b[col]
+    if (va == null) return 1
+    if (vb == null) return -1
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+    return String(va).localeCompare(String(vb)) * dir
+  })
+})
+
+function isHovered(row: number, col: string): boolean {
+  return hoveredCell.value?.row === row && hoveredCell.value?.col === col
+}
+
+function onCellEnter(row: number, col: string) {
+  hoveredCell.value = { row, col }
+}
+
+function onCellLeave() {
+  hoveredCell.value = null
+}
+
+function onCellClick(row: number, col: ColumnConfig) {
+  if (!props.editable) return
+  if (col.type === 'derived' || !col.isEditable) return
+  startEdit(row, col.key, props.data[row]?.[col.key])
+}
+
+function startEdit(row: number, key: string, value: any) {
+  editingCell.value = { row, col: key }
+  editValue.value = value ?? ''
+  hoveredCell.value = null
+}
+
+function commitEdit() {
+  if (!editingCell.value) return
+  emit('updateCell', editingCell.value.row, editingCell.value.col, editValue.value)
+  editingCell.value = null
+}
+
+function cancelEdit() {
+  editingCell.value = null
+}
+
+function toggleSort(key: string) {
+  if (sortColumn.value === key) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortColumn.value = key
+    sortDirection.value = 'asc'
+  }
+}
+
+function onPaste(e: ClipboardEvent, startRow: number) {
+  const text = e.clipboardData?.getData('text')
+  if (!text) return
+  e.preventDefault()
+
+  // Strip BOM and normalize line endings
+  const clean = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const rawRows = clean.split('\n')
+  // Remove trailing empty rows only
+  let end = rawRows.length
+  while (end > 0 && rawRows[end - 1].trim() === '') end--
+  const rows = rawRows.slice(0, end)
+  if (!rows.length) return
+
+  const editableCols = props.columns.filter(c => c.isEditable)
+  if (!editableCols.length) return
+
+  // Parse clipboard rows into column-keyed objects
+  const parsedRows: Record<string, string>[] = []
+  for (const rowStr of rows) {
+    const cells = rowStr.split('\t')
+    const rowData: Record<string, string> = {}
+    for (let ci = 0; ci < cells.length && ci < editableCols.length; ci++) {
+      rowData[editableCols[ci].key] = cells[ci].trim()
+    }
+    if (Object.keys(rowData).length > 0) parsedRows.push(rowData)
+  }
+  if (!parsedRows.length) return
+
+  // Emit as a single batch — parent handles row creation and writes atomically
+  emit('pasteRows', startRow, parsedRows)
+}
+
+// Column resize
+function startResize(e: MouseEvent, key: string) {
+  resizing.value = {
+    key,
+    startX: e.clientX,
+    startWidth: colWidths.value[key] || 120,
+  }
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeEnd)
+  e.preventDefault()
+}
+
+function onResizeMove(e: MouseEvent) {
+  if (!resizing.value) return
+  const delta = e.clientX - resizing.value.startX
+  const newWidth = Math.max(60, Math.min(500, resizing.value.startWidth + delta))
+  colWidths.value = { ...colWidths.value, [resizing.value.key]: newWidth }
+}
+
+function onResizeEnd() {
+  resizing.value = null
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+}
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+})
+</script>
+
+<style scoped>
+.dynamic-table {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.dynamic-table table {
+  width: max-content;
+  min-width: 100%;
+}
+.sticky {
+  position: sticky;
+}
+</style>
