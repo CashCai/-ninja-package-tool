@@ -1,52 +1,115 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <van-nav-bar title="设置" left-text="返回" @click-left="router.push('/')" />
+  <div class="min-h-screen">
+    <van-nav-bar title="⚙️ 设置" left-text="返回" @click-left="router.push('/')" />
 
     <div class="p-4 space-y-4">
-      <van-cell-group title="OCR 设置">
-        <van-field
-          v-model="baiduApiKey"
-          label="百度OCR API Key"
-          placeholder="可选，用于云端OCR"
-          @blur="saveSettings"
-        />
-        <van-field
-          v-model="baiduSecretKey"
-          label="百度OCR Secret Key"
-          type="password"
-          placeholder="可选"
-          @blur="saveSettings"
-        />
-      </van-cell-group>
+      <div class="ninja-card overflow-hidden">
+        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
+          <span class="font-bold text-amber-900">🤖 视觉大模型识别（推荐）</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <van-field
+            v-model="vlmApiUrl"
+            label="API 地址"
+            placeholder="默认智谱 open.bigmodel.cn，可填中转"
+            @blur="saveSettings"
+          />
+          <van-field
+            v-model="vlmApiKey"
+            label="API Key"
+            type="password"
+            placeholder="填写后截图识别优先走大模型"
+            @blur="saveSettings"
+          />
+          <van-field
+            v-model="vlmModel"
+            label="模型名"
+            placeholder="默认 glm-4.6v-flash（免费），可填 glm-ocr"
+            @blur="saveSettings"
+          />
+          <van-cell title="如何获取 API Key?" is-link @click="showVLMGuide = true" />
+        </div>
+      </div>
 
-      <van-cell-group title="Gist 同步设置">
-        <van-field
-          v-model="gistToken"
-          label="GitHub Token"
-          type="password"
-          placeholder="需 gist 权限"
-          @blur="saveSettings"
-        />
-        <van-cell title="如何获取 Token?" is-link @click="showTokenGuide = true" />
-      </van-cell-group>
+      <div class="ninja-card overflow-hidden">
+        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
+          <span class="font-bold text-amber-900">🔍 百度 OCR 设置（备用）</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <van-field
+            v-model="baiduApiKey"
+            label="百度OCR API Key"
+            placeholder="可选，本地识别置信度低时自动切换"
+            @blur="saveSettings"
+          />
+          <van-field
+            v-model="baiduSecretKey"
+            label="百度OCR Secret Key"
+            type="password"
+            placeholder="可选"
+            @blur="saveSettings"
+          />
+        </div>
+      </div>
 
-      <van-cell-group title="数据管理">
-        <van-cell title="导出所有数据 (JSON)" is-link @click="exportAllData" />
-        <van-cell title="导入数据" is-link @click="importData" />
-        <van-cell title="清除所有数据" is-link @click="clearAllData" />
-      </van-cell-group>
+      <div class="ninja-card overflow-hidden">
+        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
+          <span class="font-bold text-amber-900">☁️ Gist 同步设置</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <van-field
+            v-model="gistToken"
+            label="GitHub Token"
+            type="password"
+            placeholder="需 gist 权限"
+            @blur="saveSettings"
+          />
+          <van-cell title="如何获取 Token?" is-link @click="showTokenGuide = true" />
+        </div>
+      </div>
 
-      <van-cell-group title="关于">
-        <van-cell title="版本" value="1.0.0" />
-        <van-cell title="数据存储方式" value="本地 IndexedDB" />
-      </van-cell-group>
+      <div class="ninja-card overflow-hidden">
+        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
+          <span class="font-bold text-amber-900">💾 数据管理</span>
+        </div>
+        <div class="p-4">
+          <van-cell title="导出所有数据 (JSON)" is-link @click="exportAllData" />
+          <van-cell title="导入数据" is-link @click="importData" />
+          <van-cell title="清除所有数据" is-link @click="clearAllData" />
+        </div>
+      </div>
+
+      <div class="ninja-card overflow-hidden">
+        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
+          <span class="font-bold text-amber-900">ℹ️ 关于</span>
+        </div>
+        <div class="p-4">
+          <van-cell title="版本" value="1.0.0" />
+          <van-cell title="数据存储方式" value="本地 IndexedDB" />
+        </div>
+      </div>
     </div>
 
+    <van-dialog v-model:show="showVLMGuide" title="配置视觉大模型">
+      <div class="p-4 text-sm text-amber-900 space-y-2">
+        <p>推荐使用智谱开放平台（默认模型 glm-4.6v-flash 免费）：</p>
+        <p>1. 访问 <a class="text-red-600" href="https://open.bigmodel.cn" target="_blank">智谱开放平台</a> 注册</p>
+        <p>2. 在「API 密钥」页面创建并复制 Key</p>
+        <p>3. 粘贴到上方 API Key 输入框即可（地址和模型留空使用默认值）</p>
+        <p class="text-xs text-amber-600 pt-1">
+          💡 模型选择：
+          <br>· glm-4.6v-flash（默认，免费）— 按模板列名直接结构化提取，字段映射自动完成
+          <br>· glm-ocr — 专用文档解析模型，复杂表格（合并单元格/多层表头）识别更准，识别后仍需确认字段映射，费用极低（0.2元/百万tokens）
+          <br>· 也支持任意 OpenAI 兼容视觉模型（如 gpt-4o-mini），修改 API 地址与模型名即可
+        </p>
+      </div>
+    </van-dialog>
+
     <van-dialog v-model:show="showTokenGuide" title="获取 GitHub Token">
-      <div class="p-4 text-sm text-gray-600 space-y-2">
-        <p>1. 访问 <a class="text-blue-500" href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a></p>
+      <div class="p-4 text-sm text-amber-900 space-y-2">
+        <p>1. 访问 <a class="text-red-600" href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a></p>
         <p>2. 点击 "Generate new token (classic)"</p>
-        <p>3. 勾选 <code class="bg-gray-100 px-1">gist</code> 权限</p>
+        <p>3. 勾选 <code class="bg-amber-100 px-1 rounded">gist</code> 权限</p>
         <p>4. 生成后复制 Token 粘贴到上方</p>
       </div>
     </van-dialog>
@@ -62,18 +125,34 @@ import { exportToFile, importFromFile } from '@/services/sync/fileTransfer'
 
 const router = useRouter()
 
+const vlmApiUrl = ref('')
+const vlmApiKey = ref('')
+const vlmModel = ref('')
 const baiduApiKey = ref('')
 const baiduSecretKey = ref('')
 const gistToken = ref('')
+const showVLMGuide = ref(false)
 const showTokenGuide = ref(false)
 
 onMounted(() => {
+  vlmApiUrl.value = localStorage.getItem('vlm_api_url') || ''
+  vlmApiKey.value = localStorage.getItem('vlm_api_key') || ''
+  vlmModel.value = localStorage.getItem('vlm_model') || ''
   baiduApiKey.value = localStorage.getItem('baidu_api_key') || ''
   baiduSecretKey.value = localStorage.getItem('baidu_secret_key') || ''
   gistToken.value = localStorage.getItem('gist_token') || ''
 })
 
+/** 空值时移除存储，未保存的 VLM 字段在读取端回退默认值 */
+function persist(key: string, value: string) {
+  if (value) localStorage.setItem(key, value)
+  else localStorage.removeItem(key)
+}
+
 function saveSettings() {
+  persist('vlm_api_url', vlmApiUrl.value.trim())
+  persist('vlm_api_key', vlmApiKey.value.trim())
+  persist('vlm_model', vlmModel.value.trim())
   localStorage.setItem('baidu_api_key', baiduApiKey.value)
   localStorage.setItem('baidu_secret_key', baiduSecretKey.value)
   localStorage.setItem('gist_token', gistToken.value)
