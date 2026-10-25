@@ -1,12 +1,13 @@
 <template>
   <div class="p-4 pb-20">
     <div class="flex items-center justify-between mb-4">
-      <h1 class="text-2xl font-bold ninja-title">⚔️ 忍战发包工具</h1>
-      <div class="flex gap-2">
+      <h1 class="text-2xl font-bold ninja-title">忍战发包工具</h1>
+      <div class="flex gap-2 items-center">
+        <ThemeToggle />
         <button class="ninja-btn px-4 py-2 text-sm" @click="showNewDialog = true">
           新建表单
         </button>
-        <button class="ninja-btn ninja-btn-gray px-4 py-2 text-sm" @click="handleImport">导入</button>
+        <button class="ninja-btn-ghost px-4 py-2 text-sm" @click="handleImport">导入</button>
       </div>
     </div>
 
@@ -15,34 +16,42 @@
     <!-- 使用指引 -->
     <div class="mt-3 ninja-card overflow-hidden">
       <div
-        class="flex items-center justify-between px-4 py-3 cursor-pointer bg-gradient-to-r from-amber-100 to-amber-50"
+        class="ninja-card-header flex items-center justify-between cursor-pointer select-none"
         @click="showGuide = !showGuide"
       >
-        <span class="text-sm font-bold text-amber-900">
-          {{ showGuide ? '📜 收起使用指引 ▲' : '📜 展开使用指引 ▼' }}
+        <span class="flex items-center gap-1.5">
+          使用指引
+          <svg
+            class="w-3.5 h-3.5 transition-transform duration-300"
+            :class="showGuide ? 'rotate-180' : ''"
+            viewBox="0 0 16 16"
+            fill="none"
+          >
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </span>
-        <span class="text-xs text-amber-700">上手只需3步</span>
+        <span class="text-xs font-normal text-faint">上手只需3步</span>
       </div>
       <div v-show="showGuide" class="px-4 pb-4">
-        <ol class="text-sm text-amber-900 space-y-2 mt-2">
+        <ol class="text-sm text-sub space-y-2 mt-3">
           <li class="flex items-start gap-2">
-            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-b from-red-600 to-red-800 text-white text-xs flex items-center justify-center mt-0.5 font-bold shadow-md">1</span>
-            <span><b>新建表单</b> → 输入标题，选择或创建模板（已内置常用指标）</span>
+            <span class="flex-shrink-0 w-5 h-5 rounded-full border border-line text-gold text-[11px] flex items-center justify-center mt-0.5">1</span>
+            <span><b class="text-main">新建表单</b> → 输入标题，选择或创建模板（已内置常用指标）</span>
           </li>
           <li class="flex items-start gap-2">
-            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-b from-red-600 to-red-800 text-white text-xs flex items-center justify-center mt-0.5 font-bold shadow-md">2</span>
-            <span><b>编辑数据</b> → 点击单元格选中，再次点击进入编辑；支持从Excel直接粘贴</span>
+            <span class="flex-shrink-0 w-5 h-5 rounded-full border border-line text-gold text-[11px] flex items-center justify-center mt-0.5">2</span>
+            <span><b class="text-main">编辑数据</b> → 点击单元格选中，再次点击进入编辑；支持从Excel直接粘贴</span>
           </li>
           <li class="flex items-start gap-2">
-            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-b from-red-600 to-red-800 text-white text-xs flex items-center justify-center mt-0.5 font-bold shadow-md">3</span>
-            <span><b>导出分发</b> → 预览礼包档位，导出Excel清单</span>
+            <span class="flex-shrink-0 w-5 h-5 rounded-full border border-line text-gold text-[11px] flex items-center justify-center mt-0.5">3</span>
+            <span><b class="text-main">导出分发</b> → 预览礼包档位，导出Excel清单</span>
           </li>
         </ol>
-        <p class="text-xs text-amber-700 mt-3">
-          💡 提示：首次启动已为你创建参考表单；若未显示，点击下方按钮手动加载。
+        <p class="text-xs text-faint mt-3">
+          提示：首次启动已为你创建参考表单；若未显示，点击下方按钮手动加载。
         </p>
         <button
-          class="mt-2 ninja-btn px-4 py-1.5 text-xs"
+          class="mt-2 ninja-btn-ghost px-4 py-1.5 text-xs"
           @click="loadExample"
         >
           加载示例表单
@@ -54,9 +63,9 @@
       <van-loading />
     </div>
 
-    <div v-else-if="filteredInstances.length === 0" class="text-center py-12 text-gray-600">
+    <div v-else-if="filteredInstances.length === 0" class="text-center py-12 text-sub">
       <p class="text-lg mb-2">暂无表单</p>
-      <p class="text-sm mb-4">点击"新建表单"或加载示例快速体验</p>
+      <p class="text-sm mb-4 text-faint">点击"新建表单"或加载示例快速体验</p>
       <button class="ninja-btn px-4 py-2 text-sm" @click="loadExample">
         加载示例表单
       </button>
@@ -70,18 +79,18 @@
       >
         <div class="flex items-start justify-between">
           <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-lg text-amber-900 truncate">📋 {{ inst.title }}</h3>
-            <p class="text-xs text-amber-700 mt-1">
+            <h3 class="font-bold text-lg text-main truncate">{{ inst.title }}</h3>
+            <p class="text-xs text-faint mt-1">
               模板: {{ getTemplateName(inst.templateId) }} | {{ formatDate(inst.updatedAt) }}
             </p>
-            <p class="text-xs text-amber-700">💾 {{ inst.data.length }} 行数据</p>
+            <p class="text-xs text-faint">{{ inst.data.length }} 行数据</p>
           </div>
         </div>
         <div class="flex gap-2 mt-3 flex-wrap">
           <button class="ninja-btn px-3 py-1.5 text-xs" @click="openInstance(inst.id)">打开</button>
-          <button class="ninja-btn ninja-btn-gray px-3 py-1.5 text-xs" @click="cloneInstance(inst.id)">克隆</button>
-          <button class="ninja-btn ninja-btn-orange px-3 py-1.5 text-xs" @click="exportInstance(inst.id)">导出</button>
-          <button class="ninja-btn ninja-btn-red px-3 py-1.5 text-xs" @click="deleteInstance(inst.id)">删除</button>
+          <button class="ninja-btn-ghost px-3 py-1.5 text-xs" @click="cloneInstance(inst.id)">克隆</button>
+          <button class="ninja-btn-ghost px-3 py-1.5 text-xs" @click="exportInstance(inst.id)">导出</button>
+          <button class="ninja-btn-danger px-3 py-1.5 text-xs" @click="deleteInstance(inst.id)">删除</button>
         </div>
       </div>
     </div>
@@ -90,10 +99,10 @@
       <div class="p-4">
         <input
           v-model="newTitle"
-          class="w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-sm mb-3 bg-amber-50 focus:outline-none focus:border-amber-600"
+          class="w-full px-3 py-2 text-sm mb-3"
           placeholder="表单标题"
         />
-        <select v-model="newTemplateId" class="w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-sm bg-amber-50 focus:outline-none focus:border-amber-600">
+        <select v-model="newTemplateId" class="w-full px-3 py-2 text-sm">
           <option value="">选择模板...</option>
           <option v-for="tpl in templateList" :key="tpl.id" :value="tpl.id">
             {{ tpl.name }}
@@ -103,14 +112,14 @@
         <input
           v-if="newTemplateId === '__new__'"
           v-model="newTemplateName"
-          class="w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-sm mt-2 bg-amber-50 focus:outline-none focus:border-amber-600"
+          class="w-full px-3 py-2 text-sm mt-2"
           placeholder="新模板名称"
         />
       </div>
     </van-dialog>
 
     <van-action-bar>
-      <van-action-bar-button text="⚙️ 设置" type="warning" @click="router.push('/settings')" />
+      <van-action-bar-button text="设置" @click="router.push('/settings')" />
     </van-action-bar>
   </div>
 </template>
@@ -125,6 +134,7 @@ import { templateRepo } from '@/db/repositories/templateRepo'
 import { exportToExcel } from '@/services/export'
 import { exportToFile, importFromFile } from '@/services/sync/fileTransfer'
 import { seedReferenceData, forceSeedReference } from '@/services/seed'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const templateStore = useTemplateStore()

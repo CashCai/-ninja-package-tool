@@ -1,17 +1,17 @@
 <template>
   <van-popup :show="visible" position="bottom" round :style="{ maxHeight: '85vh' }" @close="emit('close')">
     <div class="p-4">
-      <h3 class="text-lg font-bold mb-1">校对识别结果</h3>
-      <p class="text-xs text-gray-400 mb-3">置信度: {{ confidence }}% | 来源: {{ source }}</p>
+      <h3 class="text-base font-semibold mb-1 ninja-title tracking-wide">校对识别结果</h3>
+      <p class="text-xs text-faint mb-3">置信度: {{ confidence }}% | 来源: {{ source }}</p>
 
       <div class="overflow-x-auto mb-4">
-        <table class="min-w-full border-collapse text-sm border">
+        <table class="min-w-full border-collapse text-sm border border-line-soft rounded-md">
           <thead>
-            <tr class="bg-gray-50">
-              <th v-for="header in parsedHeaders" :key="header" class="border px-2 py-1 text-left">
+            <tr>
+              <th v-for="header in parsedHeaders" :key="header" class="border border-line-faint bg-panel-2 px-2 py-1 text-left">
                 <input
                   :value="header"
-                  class="w-full bg-transparent outline-none text-sm"
+                  class="w-full bg-transparent border-none outline-none text-sm text-gold"
                   @change="(e: any) => renameHeader(header, e.target.value)"
                 />
               </th>
@@ -19,10 +19,10 @@
           </thead>
           <tbody>
             <tr v-for="(row, ri) in localRows" :key="ri">
-              <td v-for="header in parsedHeaders" :key="header" class="border px-1 py-0">
+              <td v-for="header in parsedHeaders" :key="header" class="border border-line-faint px-1 py-0">
                 <input
                   v-model="row[header]"
-                  class="w-full px-1 py-1 outline-none text-sm bg-transparent"
+                  class="w-full px-1 py-1 outline-none text-sm bg-transparent border-none text-main"
                 />
               </td>
             </tr>
@@ -31,11 +31,11 @@
       </div>
 
       <div class="mb-4">
-        <p class="text-sm text-gray-500 mb-2">字段映射到模板列</p>
+        <p class="text-sm text-sub mb-2">字段映射到模板列</p>
         <div v-for="(header, idx) in parsedHeaders" :key="idx" class="flex items-center gap-2 mb-1">
-          <span class="text-sm w-24 truncate">{{ header }}</span>
-          <span class="text-gray-400">→</span>
-          <select v-model="mapping[header]" class="flex-1 border rounded px-2 py-1 text-sm">
+          <span class="text-sm w-24 truncate text-main">{{ header }}</span>
+          <span class="text-faint">→</span>
+          <select v-model="mapping[header]" class="flex-1 px-2 py-1 text-sm">
             <option value="">— 跳过 —</option>
             <option v-for="col in templateColumns" :key="col.key" :value="col.key">
               {{ col.label }} ({{ col.key }})
@@ -45,8 +45,8 @@
       </div>
 
       <div class="flex gap-3">
-        <button class="flex-1 py-2 bg-blue-500 text-white rounded text-sm" @click="confirm">导入到表格</button>
-        <button class="flex-1 py-2 bg-gray-100 text-gray-600 rounded text-sm" @click="emit('close')">取消</button>
+        <button class="flex-1 ninja-btn py-2 text-sm" @click="confirm">导入到表格</button>
+        <button class="flex-1 ninja-btn-ghost py-2 text-sm" @click="emit('close')">取消</button>
       </div>
     </div>
   </van-popup>

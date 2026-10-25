@@ -1,5 +1,5 @@
 <template>
-  <div ref="tableRef" class="dynamic-table overflow-x-auto border border-gray-200 rounded-lg">
+  <div ref="tableRef" class="dynamic-table overflow-x-auto ninja-table">
     <table class="min-w-full border-collapse text-sm" style="table-layout: fixed">
       <colgroup>
         <col style="width: 60px; min-width: 60px">
@@ -7,30 +7,36 @@
         <col v-if="editable" style="width: 56px; min-width: 56px">
       </colgroup>
       <thead>
-        <tr class="bg-gray-50">
-          <th class="sticky left-0 bg-gray-50 z-10 border-r border-b px-3 py-2 text-left font-medium">
+        <tr>
+          <th class="sticky left-0 z-10 border-r border-b px-3 py-2 text-left font-medium">
             序号
           </th>
           <th
             v-for="col in columns"
             :key="col.key"
             class="relative border-r border-b px-3 py-2 text-left font-medium cursor-pointer select-none"
-            :class="{ 'bg-gray-100': col.type === 'derived' }"
+            :class="{ 'is-derived': col.type === 'derived' }"
             @click="toggleSort(col.key)"
           >
             <div class="flex items-center gap-1 pr-3 overflow-hidden">
               <span class="truncate">{{ col.label }}</span>
               <span
                 v-if="col.type === 'derived' && columnHints?.[col.key]"
-                class="text-xs text-blue-500 cursor-help flex-shrink-0"
+                class="cursor-help flex-shrink-0 text-gold"
                 :title="columnHints[col.key]"
-              >ⓘ</span>
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2" />
+                  <path d="M8 7.2v3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                  <circle cx="8" cy="4.9" r="0.9" fill="currentColor" />
+                </svg>
+              </span>
               <span v-if="sortColumn === col.key" class="text-xs flex-shrink-0">
                 {{ sortDirection === 'asc' ? '▲' : '▼' }}
               </span>
             </div>
             <div
-              class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 z-20"
+              class="col-resizer absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-20"
               @mousedown.stop="startResize($event, col.key)"
             />
           </th>
@@ -38,8 +44,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, idx) in sortedData" :key="idx" class="hover:bg-gray-50" @paste="(e: ClipboardEvent) => onPaste(e, idx)">
-          <td class="sticky left-0 bg-white border-r border-b px-3 py-1.5 text-gray-400 text-xs">
+        <tr v-for="(row, idx) in sortedData" :key="idx" @paste="(e: ClipboardEvent) => onPaste(e, idx)">
+          <td class="sticky left-0 bg-panel border-r border-b px-3 py-1.5 text-faint text-xs">
             {{ idx + 1 }}
           </td>
           <td
@@ -47,8 +53,8 @@
             :key="col.key"
             class="border-r border-b px-1 py-0 transition-colors"
             :class="{
-              'bg-gray-50': col.type === 'derived',
-              'bg-blue-50 ring-1 ring-inset ring-blue-300': isHovered(idx, col.key) && col.isEditable,
+              'bg-cell-derived': col.type === 'derived',
+              'bg-cell-hover ring-1 ring-inset ring-gold-soft': isHovered(idx, col.key) && col.isEditable,
             }"
             @mouseenter="onCellEnter(idx, col.key)"
             @mouseleave="onCellLeave"
@@ -57,7 +63,7 @@
             <div v-if="editingCell?.row === idx && editingCell?.col === col.key">
               <input
                 v-model="editValue"
-                class="w-full px-2 py-1 border border-blue-400 rounded outline-none text-sm"
+                class="w-full px-2 py-1 text-sm"
                 autofocus
                 @blur="commitEdit"
                 @keydown.enter="commitEdit"
@@ -71,25 +77,25 @@
               :class="{
                 'cursor-text': col.isEditable,
                 'cursor-default': !col.isEditable || col.type === 'derived',
-                'text-gray-500 italic': row[col.key] == null || row[col.key] === '',
-              }"
+                'text-faint italic': row[col.key] == null || row[col.key] === '',
+            }"
             >
               {{ row[col.key] ?? '—' }}
             </div>
           </td>
           <td v-if="editable" class="border-b px-2 py-1">
-            <button class="text-red-400 hover:text-red-600 text-xs" @click="emit('deleteRow', idx)">删除</button>
+            <button class="text-danger hover:text-danger-strong text-xs" @click="emit('deleteRow', idx)">删除</button>
           </td>
         </tr>
       </tbody>
     </table>
-    <div v-if="editable" class="p-3 border-t border-gray-200">
-      <button class="text-sm text-blue-500 hover:text-blue-700" @click="emit('addRow')">
+    <div v-if="editable" class="p-3 border-t border-line-faint">
+      <button class="text-sm text-gold hover:underline underline-offset-4" @click="emit('addRow')">
         + 添加行
       </button>
-      <span class="text-xs text-gray-400 ml-3">{{ data.length }} 行</span>
+      <span class="text-xs text-faint ml-3">{{ data.length }} 行</span>
     </div>
-    <div v-if="data.length === 0" class="p-8 text-center text-gray-400">暂无数据，请添加行或导入数据</div>
+    <div v-if="data.length === 0" class="p-8 text-center text-faint">暂无数据，请添加行或导入数据</div>
   </div>
 </template>
 

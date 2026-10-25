@@ -1,59 +1,59 @@
 <template>
   <van-popup :show="visible" position="bottom" round :style="{ maxHeight: '85vh' }" @close="emit('close')">
     <div class="p-4 space-y-4">
-      <h3 class="text-lg font-bold">公式配置</h3>
+      <h3 class="text-base font-semibold ninja-title tracking-wide">公式配置</h3>
 
       <!-- Formula expression -->
       <div>
-        <label class="text-sm text-gray-500 block mb-1">总积分公式</label>
+        <label class="text-sm text-sub block mb-1">总积分公式</label>
         <input
           ref="inputRef"
           v-model="localExpression"
-          class="w-full border rounded px-3 py-2 text-sm font-mono outline-none"
-          :class="formulaError ? 'border-red-400' : 'border-gray-300'"
+          class="w-full px-3 py-2 text-sm font-mono"
+          :class="formulaError ? 'border-[#c0564a]' : ''"
           placeholder="输入公式，如 floor(战力/1000) + 上线天数*20"
           @input="onInput"
         />
-        <p v-if="formulaError" class="text-red-500 text-xs mt-1">{{ formulaError }}</p>
-        <p v-else-if="deps.length" class="text-gray-400 text-xs mt-1">
+        <p v-if="formulaError" class="text-danger text-xs mt-1">{{ formulaError }}</p>
+        <p v-else-if="deps.length" class="text-faint text-xs mt-1">
           依赖列: {{ deps.map(k => labelMap[k] || k).join(', ') }}
         </p>
       </div>
 
       <!-- Click-to-insert: Functions -->
-      <div class="bg-gray-50 rounded p-3">
-        <p class="text-xs text-gray-400 mb-2">常用函数（点击插入）</p>
+      <div class="rounded-md bg-panel-2 border border-line-soft p-3">
+        <p class="text-xs text-faint mb-2">常用函数（点击插入）</p>
         <div class="flex flex-wrap gap-1.5">
           <span
             v-for="fn in FUNCTIONS"
             :key="fn.name"
-            class="px-2 py-1 bg-white border border-gray-300 rounded text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 font-mono"
+            class="ninja-chip px-2 py-1 text-xs font-mono"
             @click="insertAtCursor(fn.insert)"
           >{{ fn.label }}</span>
         </div>
       </div>
 
       <!-- Click-to-insert: Operators -->
-      <div class="bg-gray-50 rounded p-3">
-        <p class="text-xs text-gray-400 mb-2">运算符（点击插入）</p>
+      <div class="rounded-md bg-panel-2 border border-line-soft p-3">
+        <p class="text-xs text-faint mb-2">运算符（点击插入）</p>
         <div class="flex flex-wrap gap-1.5">
           <span
             v-for="op in OPERATORS"
             :key="op"
-            class="px-2.5 py-1 bg-white border border-gray-300 rounded text-sm cursor-pointer hover:bg-blue-50 hover:border-blue-300 font-mono"
+            class="ninja-chip px-2.5 py-1 text-sm font-mono"
             @click="insertAtCursor(op)"
           >{{ op }}</span>
         </div>
       </div>
 
       <!-- Click-to-insert: Columns -->
-      <div class="bg-blue-50 rounded p-3">
-        <p class="text-xs text-blue-400 mb-2">可用列（点击插入）</p>
+      <div class="rounded-md bg-panel-2 border border-line p-3">
+        <p class="text-xs text-faint mb-2">可用列（点击插入）</p>
         <div class="flex flex-wrap gap-1.5">
           <span
             v-for="col in availableColumns"
             :key="col.key"
-            class="px-2 py-1 bg-white rounded border border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
+            class="ninja-chip px-2 py-1 text-xs text-gold"
             @click="insertAtCursor(col.label)"
           >
             {{ col.label }}
@@ -63,40 +63,40 @@
 
       <!-- Score tiers -->
       <div>
-        <label class="text-sm text-gray-500 block mb-1">档位配置</label>
+        <label class="text-sm text-sub block mb-1">档位配置</label>
         <div v-for="(tier, idx) in localTiers" :key="idx" class="flex items-center gap-1.5 mb-2 flex-wrap">
-          <input v-model="tier.label" class="border rounded px-2 py-1 text-sm w-14" placeholder="档位名" />
-          <span class="text-xs text-gray-400">≥</span>
-          <input v-model.number="tier.min" type="number" class="border rounded px-2 py-1 text-sm w-18" style="width: 72px" />
-          <span class="text-xs text-gray-400">&lt;</span>
+          <input v-model="tier.label" class="px-2 py-1 text-sm w-14" placeholder="档位名" />
+          <span class="text-xs text-faint">≥</span>
+          <input v-model.number="tier.min" type="number" class="px-2 py-1 text-sm" style="width: 72px" />
+          <span class="text-xs text-faint">&lt;</span>
           <input
             v-model="tier.max"
             type="number"
-            class="border rounded px-2 py-1 text-sm w-18"
+            class="px-2 py-1 text-sm"
             style="width: 72px"
             :placeholder="tier.max === null ? '∞' : ''"
           />
-          <input v-model="tier.gift" class="border rounded px-2 py-1 text-sm flex-1 min-w-[80px]" placeholder="礼包" />
+          <input v-model="tier.gift" class="px-2 py-1 text-sm flex-1 min-w-[80px]" placeholder="礼包" />
           <div class="flex items-center gap-1 flex-shrink-0">
-            <span class="text-xs text-gray-400">数量</span>
+            <span class="text-xs text-faint">数量</span>
             <input
               v-model="tier.quantity"
-              class="border rounded px-2 py-1 text-sm w-16"
+              class="px-2 py-1 text-sm w-16"
               :placeholder="tier.quantity === '无限' ? '无限' : ''"
               @focus="onQuantityFocus(tier)"
               @blur="onQuantityBlur(tier)"
             />
           </div>
-          <button v-if="localTiers.length > 1" class="text-red-400 text-xs flex-shrink-0" @click="localTiers.splice(idx, 1)">删除</button>
+          <button v-if="localTiers.length > 1" class="text-danger hover:text-danger-strong text-xs flex-shrink-0" @click="localTiers.splice(idx, 1)">删除</button>
         </div>
-        <button class="text-blue-500 text-sm" @click="addTier">
+        <button class="text-sm text-gold hover:underline underline-offset-4" @click="addTier">
           + 添加档位
         </button>
       </div>
 
       <div class="flex gap-3 pt-2">
-        <button class="flex-1 py-2 bg-blue-500 text-white rounded text-sm" @click="save">保存</button>
-        <button class="flex-1 py-2 bg-gray-100 text-gray-600 rounded text-sm" @click="emit('close')">取消</button>
+        <button class="flex-1 ninja-btn py-2 text-sm" @click="save">保存</button>
+        <button class="flex-1 ninja-btn-ghost py-2 text-sm" @click="emit('close')">取消</button>
       </div>
     </div>
   </van-popup>

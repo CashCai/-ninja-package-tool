@@ -10,28 +10,28 @@
 
     <div class="flex-1 overflow-auto p-3 pb-24">
       <div class="flex flex-wrap gap-2 mb-3">
-        <button class="ninja-btn px-3 py-2 text-sm" @click="showColumnManager = true">
-          📊 管理指标
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="showColumnManager = true">
+          管理指标
         </button>
-        <button class="ninja-btn ninja-btn-green px-3 py-2 text-sm" @click="showFormulaEditor = true">
-          ➕ 公式配置
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="showFormulaEditor = true">
+          公式配置
         </button>
-        <button class="ninja-btn ninja-btn-purple px-3 py-2 text-sm" @click="showOCR = true">
-          📸 截图识别
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="showOCR = true">
+          截图识别
         </button>
-        <button class="ninja-btn ninja-btn-orange px-3 py-2 text-sm" @click="showQR = true">
-          📱 二维码
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="showQR = true">
+          二维码同步
         </button>
-        <button class="ninja-btn ninja-btn-gray px-3 py-2 text-sm" @click="previewGift">
-          🎁 预览礼包
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="previewGift">
+          预览礼包
         </button>
-        <button class="ninja-btn ninja-btn-red px-3 py-2 text-sm" @click="exportExcel">
-          📥 导出Excel
+        <button class="ninja-btn px-3 py-2 text-sm" @click="exportExcel">
+          导出 Excel
         </button>
       </div>
 
-      <div v-if="template && instance" class="text-xs text-amber-700 mb-2 ninja-card p-3">
-        💡 鼠标悬浮单元格高亮，点击直接编辑；支持 Ctrl+V 从 Excel 粘贴；拖拽表头右边框调整列宽
+      <div v-if="template && instance" class="text-xs text-faint mb-2 ninja-card p-3 leading-5">
+        鼠标悬浮单元格高亮，点击直接编辑；支持 Ctrl+V 从 Excel 粘贴；拖拽表头右边框调整列宽
       </div>
       <DynamicTable
         v-if="template && instance"
@@ -78,8 +78,8 @@
     <van-dialog v-model:show="showGiftPreview" title="礼包预览" :style="{ maxHeight: '70vh', overflow: 'auto' }">
       <div class="p-4">
         <div v-for="(group, tierLabel) in giftGroups" :key="tierLabel" class="mb-4">
-          <h4 class="font-medium text-sm mb-2">{{ tierLabel }}</h4>
-          <p v-for="(player, idx) in group" :key="idx" class="text-sm text-gray-600 py-0.5">
+          <h4 class="font-medium text-sm mb-2 text-gold">{{ tierLabel }}</h4>
+          <p v-for="(player, idx) in group" :key="idx" class="text-sm text-sub py-0.5">
             {{ player.playerId || `玩家${idx + 1}` }}
           </p>
         </div>
