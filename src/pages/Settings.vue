@@ -1,12 +1,36 @@
 <template>
   <div class="min-h-screen">
-    <van-nav-bar title="⚙️ 设置" left-text="返回" @click-left="router.push('/')" />
+    <van-nav-bar title="设置" left-text="返回" @click-left="router.push('/')" />
 
     <div class="p-4 space-y-4">
       <div class="ninja-card overflow-hidden">
-        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
-          <span class="font-bold text-amber-900">🤖 视觉大模型识别（推荐）</span>
+        <div class="ninja-card-header">外观</div>
+        <div class="p-4 flex items-center justify-between">
+          <div>
+            <p class="text-sm text-main">界面主题</p>
+            <p class="text-xs text-faint mt-0.5">夜间适合暗光环境，日间为暖白纸感</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              class="px-3 py-1.5 text-xs"
+              :class="theme === 'light' ? 'ninja-btn' : 'ninja-btn-ghost'"
+              @click="setTheme('light')"
+            >
+              日间
+            </button>
+            <button
+              class="px-3 py-1.5 text-xs"
+              :class="theme === 'dark' ? 'ninja-btn' : 'ninja-btn-ghost'"
+              @click="setTheme('dark')"
+            >
+              夜间
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div class="ninja-card overflow-hidden">
+        <div class="ninja-card-header">视觉大模型识别（推荐）</div>
         <div class="p-4 space-y-3">
           <van-field
             v-model="vlmApiUrl"
@@ -32,9 +56,7 @@
       </div>
 
       <div class="ninja-card overflow-hidden">
-        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
-          <span class="font-bold text-amber-900">🔍 百度 OCR 设置（备用）</span>
-        </div>
+        <div class="ninja-card-header">百度 OCR 设置（备用）</div>
         <div class="p-4 space-y-3">
           <van-field
             v-model="baiduApiKey"
@@ -53,9 +75,7 @@
       </div>
 
       <div class="ninja-card overflow-hidden">
-        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
-          <span class="font-bold text-amber-900">☁️ Gist 同步设置</span>
-        </div>
+        <div class="ninja-card-header">Gist 同步设置</div>
         <div class="p-4 space-y-3">
           <van-field
             v-model="gistToken"
@@ -69,9 +89,7 @@
       </div>
 
       <div class="ninja-card overflow-hidden">
-        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
-          <span class="font-bold text-amber-900">💾 数据管理</span>
-        </div>
+        <div class="ninja-card-header">数据管理</div>
         <div class="p-4">
           <van-cell title="导出所有数据 (JSON)" is-link @click="exportAllData" />
           <van-cell title="导入数据" is-link @click="importData" />
@@ -80,9 +98,7 @@
       </div>
 
       <div class="ninja-card overflow-hidden">
-        <div class="px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-50 border-b-2 border-dashed border-amber-300">
-          <span class="font-bold text-amber-900">ℹ️ 关于</span>
-        </div>
+        <div class="ninja-card-header">关于</div>
         <div class="p-4">
           <van-cell title="版本" value="1.0.0" />
           <van-cell title="数据存储方式" value="本地 IndexedDB" />
@@ -91,13 +107,13 @@
     </div>
 
     <van-dialog v-model:show="showVLMGuide" title="配置视觉大模型">
-      <div class="p-4 text-sm text-amber-900 space-y-2">
+      <div class="p-4 text-sm text-sub space-y-2">
         <p>推荐使用智谱开放平台（默认模型 glm-4.6v-flash 免费）：</p>
-        <p>1. 访问 <a class="text-red-600" href="https://open.bigmodel.cn" target="_blank">智谱开放平台</a> 注册</p>
+        <p>1. 访问 <a class="text-gold underline underline-offset-2" href="https://open.bigmodel.cn" target="_blank">智谱开放平台</a> 注册</p>
         <p>2. 在「API 密钥」页面创建并复制 Key</p>
         <p>3. 粘贴到上方 API Key 输入框即可（地址和模型留空使用默认值）</p>
-        <p class="text-xs text-amber-600 pt-1">
-          💡 模型选择：
+        <p class="text-xs text-faint pt-1 leading-5">
+          模型选择：
           <br>· glm-4.6v-flash（默认，免费）— 按模板列名直接结构化提取，字段映射自动完成
           <br>· glm-ocr — 专用文档解析模型，复杂表格（合并单元格/多层表头）识别更准，识别后仍需确认字段映射，费用极低（0.2元/百万tokens）
           <br>· 也支持任意 OpenAI 兼容视觉模型（如 gpt-4o-mini），修改 API 地址与模型名即可
@@ -106,10 +122,10 @@
     </van-dialog>
 
     <van-dialog v-model:show="showTokenGuide" title="获取 GitHub Token">
-      <div class="p-4 text-sm text-amber-900 space-y-2">
-        <p>1. 访问 <a class="text-red-600" href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a></p>
+      <div class="p-4 text-sm text-sub space-y-2">
+        <p>1. 访问 <a class="text-gold underline underline-offset-2" href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a></p>
         <p>2. 点击 "Generate new token (classic)"</p>
-        <p>3. 勾选 <code class="bg-amber-100 px-1 rounded">gist</code> 权限</p>
+        <p>3. 勾选 <code class="bg-panel-2 text-gold px-1.5 py-0.5 rounded">gist</code> 权限</p>
         <p>4. 生成后复制 Token 粘贴到上方</p>
       </div>
     </van-dialog>
@@ -122,8 +138,10 @@ import { useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import { db } from '@/db/dexie'
 import { exportToFile, importFromFile } from '@/services/sync/fileTransfer'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
+const { theme, setTheme } = useTheme()
 
 const vlmApiUrl = ref('')
 const vlmApiKey = ref('')

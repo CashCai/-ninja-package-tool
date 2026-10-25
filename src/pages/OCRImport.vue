@@ -1,23 +1,31 @@
 <template>
   <van-popup :show="visible" position="bottom" round :style="{ maxHeight: '90vh' }" @close="emit('close')">
     <div class="p-4">
-      <h3 class="text-lg font-bold mb-2 ninja-title">📸 截图识别</h3>
+      <h3 class="text-base font-semibold mb-3 ninja-title tracking-wide">截图识别</h3>
 
       <!-- 操作指引 -->
       <div class="mb-4 ninja-card overflow-hidden">
         <div
-          class="flex items-center justify-between px-3 py-2 cursor-pointer select-none bg-gradient-to-r from-amber-100 to-amber-50"
+          class="ninja-card-header flex items-center justify-between cursor-pointer select-none"
           @click="showGuide = !showGuide"
         >
-          <span class="text-sm font-bold text-amber-900">
-            {{ showGuide ? '📜 收起指引 ▲' : '📜 使用指引 ▼' }}
+          <span class="flex items-center gap-1.5">
+            使用指引
+            <svg
+              class="w-3.5 h-3.5 transition-transform duration-300"
+              :class="showGuide ? 'rotate-180' : ''"
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </span>
         </div>
-        <div v-show="showGuide" class="px-3 pb-3 text-xs text-amber-800 space-y-1 mt-2">
+        <div v-show="showGuide" class="px-3.5 py-3 text-xs text-sub space-y-1 leading-5">
           <p>1. 上传或粘贴游戏截图（支持多张），系统自动识别玩家数据</p>
           <p>2. 在「字段映射」中将识别出的列名对应到模板中的列</p>
           <p>3. 点击「导入到表格」将数据追加到当前表单</p>
-          <p class="text-amber-600">💡 已配置视觉大模型时将优先使用（自动按信息格/表格结构提取：一格 = 一名成员 = 一行，战力自动去除「战」字），字段映射自动完成；未配置时使用本地 Tesseract 识别（不支持信息格结构），可在「设置」中配置大模型</p>
+          <p class="text-faint pt-1">已配置视觉大模型时将优先使用（自动按信息格/表格结构提取：一格 = 一名成员 = 一行，战力自动去除「战」字），字段映射自动完成；未配置时使用本地 Tesseract 识别（不支持信息格结构），可在「设置」中配置大模型</p>
         </div>
       </div>
 
@@ -35,35 +43,35 @@
       />
 
       <div v-if="recognizing" class="mb-4">
-        <p class="text-sm text-amber-700 mb-2">🔄 识别中... {{ Math.round(progress * 100) }}%</p>
-        <van-progress :percentage="Math.round(progress * 100)" :stroke-width="8" color="#d4ac0d" />
+        <p class="text-sm text-sub mb-2">识别中... {{ Math.round(progress * 100) }}%</p>
+        <van-progress :percentage="Math.round(progress * 100)" :stroke-width="6" color="#f5c86a" />
       </div>
 
       <div v-if="ocrText" class="mb-4 ninja-card p-3">
-        <p class="text-sm text-amber-700 mb-2 font-bold">📝 原始识别结果</p>
-        <pre class="bg-amber-50 p-3 rounded text-xs whitespace-pre-wrap max-h-32 overflow-y-auto text-amber-900">{{ ocrText }}</pre>
+        <p class="text-sm text-sub mb-2 font-medium">原始识别结果</p>
+        <pre class="bg-panel-2 border border-line-soft p-3 rounded-md text-xs whitespace-pre-wrap max-h-32 overflow-y-auto text-sub">{{ ocrText }}</pre>
       </div>
 
-      <div v-if="fallbackReason && !recognizing" class="mb-4 ninja-card p-3 bg-red-50 border-red-300">
-        <p class="text-xs text-red-700 leading-5">
-          ⚠️ 视觉大模型识别失败，已降级为本地引擎：<br>
-          <span class="text-red-600">{{ fallbackReason }}</span>
+      <div v-if="fallbackReason && !recognizing" class="mb-4 rounded-md border border-danger-soft bg-danger-soft p-3">
+        <p class="text-xs text-danger-strong leading-5">
+          视觉大模型识别失败，已降级为本地引擎：<br>
+          <span class="text-danger">{{ fallbackReason }}</span>
         </p>
-        <p class="text-xs text-red-500 mt-1">请检查设置中的 API Key / 模型名，或截图清晰度后重试</p>
+        <p class="text-xs text-faint mt-1">请检查设置中的 API Key / 模型名，或截图清晰度后重试</p>
       </div>
 
       <template v-if="parsedRows.length > 0 && !recognizing">
-        <p class="text-sm text-amber-700 mb-2">
-          ✅ 识别到 {{ parsedRows.length }} 行数据
-          <span class="text-xs text-amber-600">(置信度: {{ confidence }}% · 引擎: {{ sourceLabel }})</span>
+        <p class="text-sm text-gold mb-2">
+          识别到 {{ parsedRows.length }} 行数据
+          <span class="text-xs text-faint">(置信度: {{ confidence }}% · 引擎: {{ sourceLabel }})</span>
         </p>
 
         <div class="mb-4 ninja-card p-3">
-          <p class="text-sm text-amber-700 mb-2 font-bold">🔗 字段映射</p>
+          <p class="text-sm text-sub mb-2 font-medium">字段映射</p>
           <div v-for="(header, idx) in parsedHeaders" :key="idx" class="flex items-center gap-2 mb-1">
-            <span class="text-sm w-20 truncate text-amber-900">{{ header }}</span>
-            <span class="text-amber-600">→</span>
-            <select v-model="fieldMapping[header]" class="flex-1 border-2 border-amber-400 rounded-lg px-2 py-1 text-sm bg-amber-50 text-amber-900 focus:outline-none focus:border-amber-600">
+            <span class="text-sm w-20 truncate text-main">{{ header }}</span>
+            <span class="text-faint">→</span>
+            <select v-model="fieldMapping[header]" class="flex-1 px-2 py-1 text-sm">
               <option value="">— 跳过 —</option>
               <option v-for="col in templateColumns" :key="col.key" :value="col.key">
                 {{ col.label }}
@@ -74,7 +82,7 @@
 
         <div class="flex gap-3">
           <button class="flex-1 ninja-btn py-2 text-sm" @click="confirmImport">导入到表格</button>
-          <button class="flex-1 ninja-btn ninja-btn-gray py-2 text-sm" @click="emit('close')">取消</button>
+          <button class="flex-1 ninja-btn-ghost py-2 text-sm" @click="emit('close')">取消</button>
         </div>
       </template>
     </div>
