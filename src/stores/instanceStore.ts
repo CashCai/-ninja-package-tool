@@ -90,11 +90,13 @@ export const useInstanceStore = defineStore('instance', () => {
 
   function recalculateAll(template: FormTemplate) {
     if (!currentInstance.value) return
-    const { expression } = template.formulaConfig
+    const { expression, dependencies } = template.formulaConfig
     const rows = currentInstance.value.data
 
     for (const row of rows) {
       const vars: Record<string, number> = {}
+      // 依赖列优先置 0，防止公式引用的列被删除后整体计算失败
+      for (const dep of dependencies || []) vars[dep] = 0
       for (const col of template.columns) {
         const val = Number(row[col.key])
         vars[col.key] = isNaN(val) ? 0 : val

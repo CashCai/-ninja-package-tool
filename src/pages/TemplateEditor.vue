@@ -25,6 +25,9 @@
         <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="previewGift">
           预览礼包
         </button>
+        <button class="ninja-btn-ghost px-3 py-2 text-sm" @click="showBonusInherit = true">
+          奖励分继承
+        </button>
         <button class="ninja-btn px-3 py-2 text-sm" @click="exportExcel">
           导出 Excel
         </button>
@@ -42,6 +45,7 @@
         @delete-row="handleDeleteRow"
         @add-row="handleAddRow"
         @paste-rows="handlePasteRows"
+        @edit-bonus="handleEditBonus"
       />
     </div>
 
@@ -75,6 +79,22 @@
       @close="showQR = false"
     />
 
+    <BonusEditor
+      :visible="showBonusEditor"
+      :row-index="bonusRowIndex"
+      :row="instance?.data[bonusRowIndex] || null"
+      @save="handleBonusSave"
+      @close="showBonusEditor = false"
+    />
+
+    <BonusInherit
+      :visible="showBonusInherit"
+      :current-instance-id="instance?.id || ''"
+      :rows="instance?.data || []"
+      @import="handleBonusInherit"
+      @close="showBonusInherit = false"
+    />
+
     <van-dialog v-model:show="showGiftPreview" title="礼包预览" :style="{ maxHeight: '70vh', overflow: 'auto' }">
       <div class="p-4">
         <div v-for="(group, tierLabel) in giftGroups" :key="tierLabel" class="mb-4">
@@ -92,17 +112,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import type { ColumnConfig, FormTemplate, ScoreTier } from '@/types'
+import type { ColumnConfig, FormTemplate, ScoreTier, BonusDetailEntry, BonusInheritPayload } from '@/types'
+import { BONUS_COL_KEY } from '@/types'
 import { useInstanceStore } from '@/stores/instanceStore'
 import { useTemplateStore } from '@/stores/templateStore'
 import { templateRepo } from '@/db/repositories/templateRepo'
 import { evaluateFormula, expressionToChinese } from '@/services/formula'
+import { sumBonusEntries, makeBonusEntry } from '@/services/bonus'
 import { exportToExcel, getScoreTier } from '@/services/export'
 import DynamicTable from '@/components/DynamicTable.vue'
 import ColumnManager from '@/components/ColumnManager.vue'
 import FormulaEditor from '@/components/FormulaEditor.vue'
 import OCRImport from '@/pages/OCRImport.vue'
 import QRCodeSync from '@/components/QRCodeSync.vue'
+import BonusEditor from '@/components/BonusEditor.vue'
+import BonusInherit from '@/components/BonusInherit.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,6 +152,9 @@ const showFormulaEditor = ref(false)
 const showOCR = ref(false)
 const showQR = ref(false)
 const showGiftPreview = ref(false)
+const showBonusEditor = ref(false)
+const bonusRowIndex = ref(0)
+const showBonusInherit = ref(false)
 
 const qrData = computed(() => {
   if (!instance.value || !template.value) return null
@@ -276,9 +303,11 @@ function handleAddRow() {
 
 function recalculate() {
   if (!template.value || !instance.value) return
-  const { expression } = template.value.formulaConfig
+  const { expression, dependencies } = template.value.formulaConfig
   for (const row of instance.value.data) {
     const vars: Record<string, number> = {}
+    // 依赖列优先置 0，防止公式引用的列被删除后整体计算失败
+    for (const dep of dependencies || []) vars[dep] = 0
     for (const col of template.value.columns) {
       const val = Number(row[col.key])
       vars[col.key] = isNaN(val) ? 0 : val
@@ -289,11 +318,40 @@ function recalculate() {
 
 async function handleColumnsSave(columns: ColumnConfig[]) {
   if (!template.value) return
+  const prevHadBonus = template.value.columns.some(c => c.key === BONUS_COL_KEY)
+  const hasBonus = columns.some(c => c.key === BONUS_COL_KEY)
+  const formulaConfig = { ...template.value.formulaConfig }
+  const deps = [...(formulaConfig.dependencies || [])]
+  let formulaChanged = false
+
+  // 新增奖励分列：自动计入总积分公式
+  if (hasBonus && !deps.includes(BONUS_COL_KEY) && formulaConfig.targetColumn !== BONUS_COL_KEY) {
+    formulaConfig.expression = formulaConfig.expression?.trim()
+      ? `${formulaConfig.expression} + ${BONUS_COL_KEY}`
+      : BONUS_COL_KEY
+    formulaConfig.dependencies = [...deps, BONUS_COL_KEY]
+    formulaChanged = true
+    showToast('已自动将「奖励分」计入总积分公式')
+  }
+
+  // 移除奖励分列：剥离公式末尾的奖励分引用
+  if (!hasBonus && prevHadBonus && deps.includes(BONUS_COL_KEY)) {
+    formulaConfig.expression = (formulaConfig.expression || '')
+      .replace(new RegExp(`\\s*\\+\\s*${BONUS_COL_KEY}\\s*$`), '')
+      .trim()
+    formulaConfig.dependencies = deps.filter(d => d !== BONUS_COL_KEY)
+    formulaChanged = true
+  }
+
   template.value.columns = columns
-  await templateStore.saveTemplate(template.value.id, { columns })
+  if (formulaChanged) template.value.formulaConfig = formulaConfig
+  await templateStore.saveTemplate(template.value.id, {
+    columns,
+    ...(formulaChanged ? { formulaConfig } : {}),
+  })
   showColumnManager.value = false
   recalculate()
-  showToast('指标已更新')
+  if (!formulaChanged) showToast('指标已更新')
 }
 
 async function handleFormulaSave(config: { formulaConfig: any; scoreTiers: ScoreTier[] }) {
@@ -307,6 +365,50 @@ async function handleFormulaSave(config: { formulaConfig: any; scoreTiers: Score
   showFormulaEditor.value = false
   recalculate()
   showToast('公式已更新')
+}
+
+function handleEditBonus(rowIndex: number) {
+  bonusRowIndex.value = rowIndex
+  showBonusEditor.value = true
+}
+
+function handleBonusSave(rowIndex: number, entries: BonusDetailEntry[]) {
+  if (!instance.value) return
+  const row = instance.value.data[rowIndex]
+  if (!row) return
+  row.bonusDetail = entries
+  row.bonusScore = sumBonusEntries(entries)
+  recalculate()
+  showBonusEditor.value = false
+  instanceStore.saveInstance(instance.value.id, { data: instance.value.data })
+  showToast('奖励分已更新')
+}
+
+function handleBonusInherit(payload: BonusInheritPayload) {
+  if (!instance.value) return
+  for (const m of payload.matches) {
+    const row = instance.value.data[m.rowIndex]
+    if (!row) continue
+    // 同一来源的继承数据幂等替换，避免重复导入叠加
+    const kept = ((row.bonusDetail || []) as BonusDetailEntry[]).filter(
+      e => !(e.kind === 'inherited' && e.fromInstanceId === payload.fromInstanceId)
+    )
+    kept.push(
+      makeBonusEntry({
+        name: '继承奖励分',
+        points: m.points,
+        kind: 'inherited',
+        fromInstanceId: payload.fromInstanceId,
+        fromTitle: payload.fromTitle,
+      })
+    )
+    row.bonusDetail = kept
+    row.bonusScore = sumBonusEntries(kept)
+  }
+  recalculate()
+  showBonusInherit.value = false
+  instanceStore.saveInstance(instance.value.id, { data: instance.value.data })
+  showToast(`已继承 ${payload.matches.length} 名玩家的奖励分`)
 }
 
 function handleOCRImport(rows: Record<string, any>[]) {

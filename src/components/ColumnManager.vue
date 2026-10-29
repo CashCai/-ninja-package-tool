@@ -24,9 +24,9 @@
             <input v-model="col.label" class="flex-1 px-2 py-1 text-sm" />
             <span
               class="flex-shrink-0 text-[11px] px-1.5 py-0.5 rounded border"
-              :class="col.type === 'derived' ? 'border-line text-gold' : 'border-line-neutral text-faint'"
+              :class="col.key === BONUS_COL_KEY ? 'border-line text-gold' : col.type === 'derived' ? 'border-line text-gold' : 'border-line-neutral text-faint'"
             >
-              {{ col.type === 'derived' ? '计算' : '输入' }}
+              {{ col.key === BONUS_COL_KEY ? '标签' : col.type === 'derived' ? '计算' : '输入' }}
             </span>
             <button v-if="col.key !== 'playerId'" class="text-danger hover:text-danger-strong text-xs flex-shrink-0" @click="removeColumn(idx)">删除</button>
           </div>
@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { ColumnConfig } from '@/types'
-import { PRESET_COLUMNS } from '@/types'
+import { PRESET_COLUMNS, BONUS_COL_KEY } from '@/types'
 import { nanoid } from '@/utils/id'
 
 const props = defineProps<{
