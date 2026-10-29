@@ -54,7 +54,7 @@
             class="border-r border-b px-1 py-0 transition-colors"
             :class="{
               'bg-cell-derived': col.type === 'derived',
-              'bg-cell-hover ring-1 ring-inset ring-gold-soft': isHovered(idx, col.key) && col.isEditable,
+              'bg-cell-hover ring-1 ring-inset ring-gold-soft': isHovered(idx, col.key) && (col.isEditable || col.key === BONUS_COL_KEY),
             }"
             @mouseenter="onCellEnter(idx, col.key)"
             @mouseleave="onCellLeave"
@@ -70,6 +70,24 @@
                 @keydown.escape="cancelEdit"
                 @click.stop
               />
+            </div>
+            <div
+              v-else-if="col.key === BONUS_COL_KEY"
+              class="px-2 py-1.5 min-h-[32px] flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer"
+              title="点击选择奖励标签"
+            >
+              <template v-if="bonusEntryCount(row) > 0">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 text-gold" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 2h5l7 7-5 5-7-7V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" />
+                  <circle cx="5.2" cy="5.2" r="1.1" fill="currentColor" />
+                </svg>
+                <span
+                  class="text-sm font-medium"
+                  :class="(Number(row[col.key]) || 0) >= 0 ? 'text-gold' : 'text-danger'"
+                >{{ row[col.key] ?? 0 }}</span>
+                <span class="text-[10px] text-faint flex-shrink-0">x{{ bonusEntryCount(row) }}</span>
+              </template>
+              <span v-else class="text-faint italic text-sm">点击录入</span>
             </div>
             <div
               v-else
@@ -102,6 +120,7 @@
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount } from 'vue'
 import type { ColumnConfig } from '@/types'
+import { BONUS_COL_KEY } from '@/types'
 
 const props = withDefaults(defineProps<{
   columns: ColumnConfig[]
@@ -117,6 +136,7 @@ const emit = defineEmits<{
   deleteRow: [rowIndex: number]
   addRow: []
   pasteRows: [startRow: number, rows: Record<string, string>[]]
+  editBonus: [rowIndex: number]
 }>()
 
 const editingCell = ref<{ row: number; col: string } | null>(null)
@@ -158,8 +178,18 @@ function onCellLeave() {
 
 function onCellClick(row: number, col: ColumnConfig) {
   if (!props.editable) return
+  if (col.key === BONUS_COL_KEY) {
+    // sortedData 为排序后的展示序列，需换算回原始数据下标
+    const realRow = props.data.indexOf(sortedData.value[row])
+    if (realRow >= 0) emit('editBonus', realRow)
+    return
+  }
   if (col.type === 'derived' || !col.isEditable) return
   startEdit(row, col.key, props.data[row]?.[col.key])
+}
+
+function bonusEntryCount(row: Record<string, any>): number {
+  return Array.isArray(row?.bonusDetail) ? row.bonusDetail.length : 0
 }
 
 function startEdit(row: number, key: string, value: any) {

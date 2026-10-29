@@ -20,7 +20,7 @@ async function createReferenceTemplate() {
     formulaConfig: {
       targetColumn: 'totalScore',
       expression: DEFAULT_FORMULA,
-      dependencies: ['power', 'loginDays', 'battleCount'],
+      dependencies: ['power', 'loginDays', 'battleCount', 'bonusScore'],
     },
     scoreTiers: [...DEFAULT_SCORE_TIERS],
   })
